@@ -58,22 +58,22 @@ jobs:
         with:
           version: 'v1.30.0'
 
-      - name: Configure kubeconfig
-        run: |
-          mkdir -p "$HOME/.kube"
-          echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > "$HOME/.kube/config"
-          chmod 600 "$HOME/.kube/config"
+      - name: Set K8s context
+        uses: azure/k8s-set-context@v4
+        with:
+          method: kubeconfig
+          kubeconfig: ${{ secrets.KUBE_CONFIG }}
 
       - name: Deploy on tag
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
           TAG_NAME=${GITHUB_REF#refs/tags/}
-          kubectl -n "${K8S_NAMESPACE}" set image deployment/${K8S_DEPLOYMENT} \
-            diploma-app="${IMAGE_NAME}:${TAG_NAME}"
-          kubectl -n "${K8S_NAMESPACE}" rollout status deployment/${K8S_DEPLOYMENT} --timeout=180s
+          kubectl -n default set image deployment/diploma-app \
+            diploma-app="gitverse.ru/lar/diploma-app:${TAG_NAME}"
+          kubectl -n default rollout status deployment/diploma-app --timeout=180s
 
       - name: Verify deployment
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
-          kubectl -n "${K8S_NAMESPACE}" get pods -l app=diploma-app -o wide
-          kubectl -n "${K8S_NAMESPACE}" get svc diploma-app
+          kubectl -n default get pods -l app=diploma-app -o wide
+          kubectl -n default get svc diploma-app
